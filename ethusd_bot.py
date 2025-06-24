@@ -233,7 +233,8 @@ app = FastAPI()
 
 @app.get("/")
 def root():
-    return {"status": "Bot is running", "time": str(datetime.utcnow())}
+    from datetime import timezone
+return {"status": "Bot is running", "time": datetime.now(timezone.utc).isoformat()}
 
 # === START ===
 if __name__ == "__main__":
