@@ -20,8 +20,8 @@ def authenticate():
     try:
         client = DeltaRestClient(
             base_url=BASE_URL,
-            api_key=DELTA_API_KEY,
-            api_secret=DELTA_API_SECRET
+            api_key=API_KEY,
+            api_secret=API_SECRET
         )
         print("\u2705 Authentication successful.")
         return client
