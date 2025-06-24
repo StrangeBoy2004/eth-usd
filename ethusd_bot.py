@@ -225,7 +225,7 @@ def wait_until_next_15min():
 if __name__ == "__main__":
     client = authenticate()
     if client:
-        balance = get_usd_balance(api_key, api_secret)
+        balance = get_usd_balance(API_KEY, API_SECRET)
         if balance:
             setup_trade_log()
             print("\n🔁 Starting 15m Strategy Loop...")
