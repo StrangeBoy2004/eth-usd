@@ -14,19 +14,26 @@ from ta.trend import EMAIndicator, ADXIndicator
 from delta_rest_client import DeltaRestClient
 import os
 # === USER CONFIGURATION ===
-API_KEY = os.getenv("DELTA_API_KEY") or "RzC8BXl98EeFh3i1pOwRAgjqQpLLII"
-API_SECRET = os.getenv("DELTA_API_SECRET") or "yP1encFFWbrPkm5u58ak3qhHD3Eupv9fP5Rf9AmPmi60RHTreYuBdNv1a2bo"
+API_KEY = os.getenv("DELTA_API_KEY") or 'RzC8BXl98EeFh3i1pOwRAgjqQpLLII'
+API_SECRET = os.getenv("DELTA_API_SECRET") or 'yP1encFFWbrPkm5u58ak3qhHD3Eupv9fP5Rf9AmPmi60RHTreYuBdNv1a2bo'
 BASE_URL = 'https://cdn-ind.testnet.deltaex.org'
-USD_ASSET_ID = 3  # Confirmed from wallet response
+USD_ASSET_ID = 3
+PRODUCT_ID = 1699
 
+# === TRADE LOG ===
+def setup_trade_log():
+    try:
+        with open("trades_log.txt", "a") as f:
+            f.write(f"\n--- New Session Started: {datetime.now()} ---\n")
+        print("✅ Trade log file ready.")
+    except Exception as e:
+        print(f"❌ Failed to setup trade log: {e}")
+
+# === AUTHENTICATION ===
 def authenticate():
     try:
-        client = DeltaRestClient(
-            base_url=BASE_URL,
-            api_key=API_KEY,
-            api_secret=API_SECRET
-        )
-        print("\u2705 Authentication successful.")
+        client = DeltaRestClient(base_url=BASE_URL, api_key=API_KEY, api_secret=API_SECRET)
+        print("✅ Authentication successful.")
         return client
     except Exception as e:
         print(f"❌ Authentication failed: {e}")
@@ -47,29 +54,18 @@ def get_usd_balance(client):
         print(f"❌ Failed to fetch balance: {e}")
         return None
 
-# === SETUP TRADE LOG FILE ===
-def setup_trade_log():
-    try:
-        with open("trades_log.txt", "a") as f:
-            f.write(f"\n--- New Session Started: {datetime.now()} ---\n")
-        print("✅ Trade log file ready.")
-    except Exception as e:
-        print(f"❌ Failed to setup trade log: {e}")
-
-# === FETCH ETH/USDT 15M CANDLES ===
+# === STRATEGY ===
 def fetch_eth_candles(symbol="ETH/USDT", timeframe="15m", limit=100):
-    exchange = ccxt.binance()
     try:
         print("📅 Fetching 15m candles from Binance...")
-        ohlcv = exchange.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
+        ohlcv = ccxt.binance().fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
         df = pd.DataFrame(ohlcv, columns=["timestamp", "open", "high", "low", "close", "volume"])
         df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
         return df
     except Exception as e:
-        print(f"❌ Failed to fetch candle data: {e}")
+        print(f"❌ Failed to fetch candles: {e}")
         return None
 
-# === APPLY STRATEGY INDICATORS ===
 def apply_strategy(df):
     try:
         df["ema21"] = EMAIndicator(close=df["close"], window=21).ema_indicator()
@@ -78,10 +74,9 @@ def apply_strategy(df):
         df["adx"] = adx.adx()
         return df
     except Exception as e:
-        print(f"❌ Error while applying indicators: {e}")
-        return None
+        print(f"❌ Indicator error: {e}")
+        return df
 
-# === DETERMINE TRADE DIRECTION ===
 def get_trade_signal(df):
     last = df.iloc[-1]
     print("\n📊 Strategy Check (Latest Candle):")
@@ -90,16 +85,11 @@ def get_trade_signal(df):
     print(f"ADX: {last['adx']:.2f} > 20")
 
     if last["close"] > last["ema21"] and last["volume"] > last["vol_sma30"] and last["adx"] > 20:
-        print("✅ Long Signal Detected")
         return "buy"
     elif last["close"] < last["ema21"] and last["volume"] > last["vol_sma30"] and last["adx"] > 20:
-        print("✅ Short Signal Detected")
         return "sell"
-    else:
-        print("❌ No signal this candle.")
-        return None
+    return None
 
-# === CANCEL UNFILLED ORDERS ===
 def cancel_unfilled_orders(client, product_id):
     try:
         print("🔍 Checking for unfilled live orders...")
@@ -110,7 +100,6 @@ def cancel_unfilled_orders(client, product_id):
     except Exception as e:
         print(f"❌ Error cancelling orders: {e}")
 
-# === CHECK IF ALREADY IN POSITION ===
 def has_open_position(client, product_id):
     try:
         pos = client.get_position(product_id=product_id)
@@ -119,7 +108,6 @@ def has_open_position(client, product_id):
         print(f"❌ Error checking position: {e}")
         return False
 
-# === PLACE ORDER ===
 def place_order(client, capital, entry_price, side, product_id):
     try:
         RISK_PERCENT = 0.10
@@ -158,7 +146,6 @@ def place_order(client, capital, entry_price, side, product_id):
     except Exception as e:
         print(f"❌ Failed to place order: {e}")
 
-# === TRAILING STOP/BREAK-EVEN MONITOR ===
 def monitor_position_with_trailing_sl(client, product_id, entry_price, side, tp_usd):
     try:
         halfway = entry_price + tp_usd / 2 if side == "buy" else entry_price - tp_usd / 2
@@ -198,46 +185,57 @@ def monitor_position_with_trailing_sl(client, product_id, entry_price, side, tp_
     except Exception as e:
         print(f"❌ Error in SL monitor: {e}")
 
-# === WAIT FOR NEXT 15M CANDLE ===
 def wait_until_next_15min():
     now = datetime.now()
     wait_seconds = ((15 - now.minute % 15) * 60) - now.second
     print(f"🕒 Waiting {wait_seconds}s until next 15m candle...")
     time.sleep(wait_seconds)
 
-# === MAIN LOOP ===
-if __name__ == "__main__":
+def run_bot():
+    print("🤖 Bot loop started...")
     client = authenticate()
-    if client:
-        balance = get_usd_balance(client)
-        if balance:
-            setup_trade_log()
-            print("\n🔁 Starting 15m Strategy Loop...")
-            product_id = 1699    # Or use get_ethusd_product_id(client)
-            while True:
-                try:
-                    wait_until_next_15min()
-                    cancel_unfilled_orders(client, product_id)
-                    if has_open_position(client, product_id):
-                        print("⏸️ Skipping: already in position.")
-                        continue
+    if not client:
+        print("❌ Client authentication failed.")
+        return
 
-                    df = fetch_eth_candles()
-                    df = apply_strategy(df)
-                    signal = get_trade_signal(df)
+    setup_trade_log()
 
-                    if signal:
-                        entry_price = float(df.iloc[-1]["close"])
-                        place_order(client, balance, entry_price, signal, product_id)
-                    else:
-                        print("❌ No trade this candle.")
-                except KeyboardInterrupt:
-                    print("\n🚪 Bot stopped manually.")
-                    break
-                except Exception as e:
-                    print(f"❌ Error: {e}")
-                    time.sleep(30)
-        else:
-            print("⚠️ USD balance fetch failed.")
-    else:
-        print("⚠️ Auth failed. Exiting.")
+    while True:
+        try:
+            balance = get_usd_balance(client)
+            if not balance:
+                print("⚠️ Balance fetch failed. Retrying...")
+                time.sleep(60)
+                continue
+
+            wait_until_next_15min()
+            cancel_unfilled_orders(client, PRODUCT_ID)
+
+            if has_open_position(client, PRODUCT_ID):
+                print("⏸️ Skipping: already in position.")
+                continue
+
+            df = fetch_eth_candles()
+            df = apply_strategy(df)
+            signal = get_trade_signal(df)
+
+            if signal:
+                entry_price = float(df.iloc[-1]['close'])
+                place_order(client, balance, entry_price, signal, PRODUCT_ID)
+            else:
+                print("❌ No trade this candle.")
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            time.sleep(30)
+
+# === FASTAPI SERVER ===
+app = FastAPI()
+
+@app.get("/")
+def root():
+    return {"status": "Bot is running", "time": str(datetime.utcnow())}
+
+# === START ===
+if __name__ == "__main__":
+    threading.Thread(target=run_bot).start()
+    uvicorn.run(app, host="0.0.0.0", port=10000)
