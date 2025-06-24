@@ -1,15 +1,18 @@
 
-from delta_rest_client import DeltaRestClient
-from datetime import datetime
+from fastapi import FastAPI
+import uvicorn
+import threading
+import time
+import requests
+import hmac
+import hashlib
 import ccxt
 import pandas as pd
 import numpy as np
+from datetime import datetime
 from ta.trend import EMAIndicator, ADXIndicator
-import time
+from delta_rest_client import DeltaRestClient
 import os
-import hmac
-import hashlib
-import requests
 # === USER CONFIGURATION ===
 API_KEY = os.getenv("DELTA_API_KEY") or "RzC8BXl98EeFh3i1pOwRAgjqQpLLII"
 API_SECRET = os.getenv("DELTA_API_SECRET") or "yP1encFFWbrPkm5u58ak3qhHD3Eupv9fP5Rf9AmPmi60RHTreYuBdNv1a2bo"
