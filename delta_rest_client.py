@@ -20,6 +20,14 @@ class DeltaRestClient:
             "Content-Type": "application/json"
         }
         return headers
+        def get_balances(self, asset_id):
+    path = "/v2/wallet/balances"
+    response = self._request("GET", path)
+    for wallet in response.get("result", []):
+        if wallet["asset_id"] == asset_id:
+            return wallet
+    return None
+
 
     def _request(self, method, path, params=None, json_data=None):
         url = self.base_url + path
