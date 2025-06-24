@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 from ta.trend import EMAIndicator, ADXIndicator
 import time
-
+import os
 # === USER CONFIGURATION ===
 API_KEY = os.getenv("DELTA_API_KEY") or "replace_this_key"
 API_SECRET = os.getenv("DELTA_API_SECRET") or "replace_this_secret"
