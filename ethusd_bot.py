@@ -28,19 +28,38 @@ def authenticate():
         return None
 
 # === FETCH USD BALANCE ===
-def get_usd_balance(client):
+def get_usd_balance(api_key, api_secret):
     try:
-        wallet = client.get_balances(asset_id=USD_ASSET_ID)
-        if wallet:
-            balance = float(wallet["available_balance"])
-            print(f"💰 USD Balance: {balance:.4f} USD")
-            return balance
-        else:
-            print("❌ USD wallet not found.")
+        path = "/v2/wallet/balances"
+        url = BASE_URL.rstrip("/") + path
+        request_time = str(int(time.time() * 1000))
+        payload = request_time + "GET" + path
+        signature = hmac.new(api_secret.encode(), payload.encode(), hashlib.sha256).hexdigest()
+
+        headers = {
+            "api-key": api_key,
+            "request-time": request_time,
+            "signature": signature
+        }
+
+        response = requests.get(url, headers=headers)
+        if response.status_code != 200:
+            print(f"❌ HTTP Error {response.status_code}: {response.text}")
             return None
-    except Exception as e:
-        print(f"❌ Failed to fetch balance: {e}")
+
+        wallets = response.json().get("result", [])
+        for wallet in wallets:
+            if wallet["asset_symbol"] == "USD":
+                balance = float(wallet["available_balance"])
+                print(f"💰 USD Balance: {balance:.4f} USD")
+                return balance
+
+        print("❌ USD wallet not found.")
         return None
+    except Exception as e:
+        print(f"❌ Exception during balance fetch: {e}")
+        return None
+
 
 # === SETUP TRADE LOG FILE ===
 def setup_trade_log():
@@ -204,7 +223,7 @@ def wait_until_next_15min():
 if __name__ == "__main__":
     client = authenticate()
     if client:
-        balance = get_usd_balance(client)
+        balance = get_usd_balance(api_key, api_secret)
         if balance:
             setup_trade_log()
             print("\n🔁 Starting 15m Strategy Loop...")
