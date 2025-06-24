@@ -230,11 +230,11 @@ def wait_until_next_15min():
 if __name__ == "__main__":
     client = authenticate()
     if client:
-       balance = get_usd_balance(API_KEY, API_SECRET)
+        balance = get_usd_balance(API_KEY, API_SECRET)
         if balance:
             setup_trade_log()
             print("\n🔁 Starting 15m Strategy Loop...")
-            product_id = 1699    # Or use get_ethusd_product_id(client)
+            product_id = 1699
             while True:
                 try:
                     wait_until_next_15min()
