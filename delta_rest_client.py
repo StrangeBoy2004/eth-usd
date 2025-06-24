@@ -1,0 +1,2 @@
+class DeltaRestClient:
+    pass
