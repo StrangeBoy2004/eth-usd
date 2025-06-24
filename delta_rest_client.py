@@ -1,3 +1,4 @@
+version = "1.0"
 import requests
 import urllib.parse
 import time
@@ -9,7 +10,7 @@ import json
 from enum import Enum
 
 from decimal import Decimal
-version = "1.0"
+
 
 
 
