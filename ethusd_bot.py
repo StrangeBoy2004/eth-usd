@@ -16,8 +16,6 @@ API_SECRET = os.getenv("DELTA_API_SECRET") or "yP1encFFWbrPkm5u58ak3qhHD3Eupv9fP
 BASE_URL = 'https://cdn-ind.testnet.deltaex.org'
 USD_ASSET_ID = 3  # Confirmed from wallet response
 
-# === USER CONFIGURATION ===
-# === AUTHENTICATION ===
 def authenticate():
     try:
         client = DeltaRestClient(
@@ -32,40 +30,18 @@ def authenticate():
         return None
 
 # === FETCH USD BALANCE ===
-def get_usd_balance(api_key, api_secret):
+def get_usd_balance(client):
     try:
-        path = "/v2/wallet/balances"
-        url = BASE_URL.rstrip("/") + path
-        request_time = str(int(time.time() * 1000))
-        payload = request_time + "GET" + path
-        signature = hmac.new(
-            api_secret.encode(),
-            payload.encode(),
-            hashlib.sha256
-        ).hexdigest()
-
-        headers = {
-            "api-key": api_key,
-            "request-time": request_time,
-            "signature": signature
-        }
-
-        response = requests.get(url, headers=headers)
-        if response.status_code != 200:
-            print(f"❌ HTTP Error {response.status_code}: {response.text}")
+        wallet = client.get_balances(asset_id=USD_ASSET_ID)
+        if wallet:
+            balance = float(wallet["available_balance"])
+            print(f"💰 USD Balance: {balance:.4f} USD")
+            return balance
+        else:
+            print("❌ USD wallet not found.")
             return None
-
-        wallets = response.json().get("result", [])
-        for wallet in wallets:
-            if wallet["asset_symbol"] == "USD":
-                balance = float(wallet["available_balance"])
-                print(f"💰 USD Balance: {balance:.4f} USD")
-                return balance
-
-        print("❌ USD wallet not found.")
-        return None
     except Exception as e:
-        print(f"❌ Exception during balance fetch: {e}")
+        print(f"❌ Failed to fetch balance: {e}")
         return None
 
 # === SETUP TRADE LOG FILE ===
@@ -230,11 +206,11 @@ def wait_until_next_15min():
 if __name__ == "__main__":
     client = authenticate()
     if client:
-        balance = get_usd_balance(API_KEY, API_SECRET)
+        balance = get_usd_balance(client)
         if balance:
             setup_trade_log()
             print("\n🔁 Starting 15m Strategy Loop...")
-            product_id = 1699
+            product_id = 1699    # Or use get_ethusd_product_id(client)
             while True:
                 try:
                     wait_until_next_15min()
