@@ -11,11 +11,12 @@ import hmac
 import hashlib
 import requests
 # === USER CONFIGURATION ===
-API_KEY = os.getenv("DELTA_API_KEY") or "replace_this_key"
-API_SECRET = os.getenv("DELTA_API_SECRET") or "replace_this_secret"
+API_KEY = os.getenv("DELTA_API_KEY") or "RzC8BXl98EeFh3i1pOwRAgjqQpLLII"
+API_SECRET = os.getenv("DELTA_API_SECRET") or "yP1encFFWbrPkm5u58ak3qhHD3Eupv9fP5Rf9AmPmi60RHTreYuBdNv1a2bo"
 BASE_URL = 'https://cdn-ind.testnet.deltaex.org'
 USD_ASSET_ID = 3  # Confirmed from wallet response
 
+# === USER CONFIGURATION ===
 # === AUTHENTICATION ===
 def authenticate():
     try:
