@@ -14,8 +14,6 @@ from ta.trend import EMAIndicator, ADXIndicator
 from delta_rest_client import DeltaRestClient
 import os
 from datetime import datetime, timezone
-return {"status": "Bot is running", "time": datetime.now(timezone.utc).isoformat()}
-
 # === USER CONFIGURATION ===
 API_KEY = os.getenv("DELTA_API_KEY") or 'RzC8BXl98EeFh3i1pOwRAgjqQpLLII'
 API_SECRET = os.getenv("DELTA_API_SECRET") or 'yP1encFFWbrPkm5u58ak3qhHD3Eupv9fP5Rf9AmPmi60RHTreYuBdNv1a2bo'
