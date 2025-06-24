@@ -9,6 +9,7 @@ import time
 import os
 import hmac
 import hashlib
+import requests
 # === USER CONFIGURATION ===
 API_KEY = os.getenv("DELTA_API_KEY") or "replace_this_key"
 API_SECRET = os.getenv("DELTA_API_SECRET") or "replace_this_secret"
